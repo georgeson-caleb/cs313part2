@@ -5,6 +5,7 @@ var path = require("path");
 var bodyParser = require('body-parser');
 var session = require("express-session");
 var bcrypt = require("bcrypt");
+const request = require('request');
 const { check, validationResult } = require("express-validator");
 require('dotenv').config();
 var connectionString = process.env.DATABASE_URL;
@@ -17,13 +18,12 @@ var pool = new pg.Pool({connectionString: connectionString});
 app.set('view engine', 'ejs');
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({extended: false}));
-//app.use(validator.);
-//app.use(cookieParser);
 app.use(session({secret: secretToken, resave: true, saveUninitialized: false}));
 
 // GET requests
 app.get('/', renderLogin);
 app.get('/home', renderHome);
+app.get('/searchStocks', searchStocks);
 
 // POST requests
 app.post("/createAccount", [check('email').isEmail().normalizeEmail()], createAccount);
@@ -126,6 +126,18 @@ function requestLogin(req, res) {
    });
 }
 
-function queryAccountCreation(password) {
-
+function searchStocks(req, res) {
+   var ssn = req.session;
+   
+   request.get(
+      "https://api.worldtradingdata.com/api/v1/stock",
+      {
+         symbol: req.params.symbol,
+         api_token: process.env.STOCK_API_KEY
+      },
+      function(err, response, body) {
+         res.send(response);
+         res.end();
+      }
+   )
 }

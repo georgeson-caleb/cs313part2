@@ -65,3 +65,30 @@ function showError(id, message) {
 function hideError(id) {
    document.getElementById(id).style.display = "none";
 }
+
+function searchStocks() {
+   var symbol = document.getElementById("search").value;
+   $.get(
+      "/searchStocks",
+      {
+         symbol: symbol
+      },
+      displaySearchResult
+   );
+}
+
+function performSearch(response) {
+   var symbol = document.getElementById("search").value;
+   $.get(
+      "https://api.worldtradingdata.com/api/v1/stock",
+      {
+         symbol: symbol,
+         api_key: response
+      },
+      displaySearchResult
+   );
+}
+
+function displaySearchResult(result) {
+   document.getElementById("searchResult").innerHTML = JSON.stringify(result);
+}
