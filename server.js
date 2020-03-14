@@ -6,6 +6,7 @@ var bodyParser = require('body-parser');
 var session = require("express-session");
 var bcrypt = require("bcrypt");
 const request = require('request');
+const https = require('https');
 const { check, validationResult } = require("express-validator");
 require('dotenv').config();
 var connectionString = process.env.DATABASE_URL;
@@ -129,15 +130,20 @@ function requestLogin(req, res) {
 function searchStocks(req, res) {
    var ssn = req.session;
    
-   request.get(
-      "https://api.worldtradingdata.com/api/v1/stock",
-      {
-         symbol: req.params.symbol,
-         api_token: process.env.STOCK_API_KEY
-      },
-      function(err, response, body) {
-         res.send(response);
-         res.end();
+   https.get(
+      "https://api.worldtradingdata.com/api/v1/stock?symbol=" + req.params.symbol + "&api_key=2dvyefOcuSeXnFPhm24R42b53Pw8ST84RCrhmQNqiopdEmCAJ8JxUW7tDsY6", //process.env.STOCK_API_KEY,
+      (response) => {
+         let todo = '';
+         response.on('data', (chunk) => {
+            todo += chunk;
+         });
+
+         response.on('end', () => {
+            res.send(todo);
+            res.end();
+         })
       }
-   )
+   ).on("error", (error) => {
+      console.log("Error: " + error.message);
+   });
 }
