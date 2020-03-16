@@ -131,7 +131,7 @@ function searchStocks(req, res) {
    var ssn = req.session;
    
    https.get(
-      "https://api.worldtradingdata.com/api/v1/stock?symbol=" + req.params.symbol + "&api_key=2dvyefOcuSeXnFPhm24R42b53Pw8ST84RCrhmQNqiopdEmCAJ8JxUW7tDsY6", //process.env.STOCK_API_KEY,
+      "https://api.worldtradingdata.com/api/v1/stock?symbol=" + req.params.symbol + "&api_key" + process.env.STOCK_API_KEY,
       (response) => {
          let todo = '';
          response.on('data', (chunk) => {
