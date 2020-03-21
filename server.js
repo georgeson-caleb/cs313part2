@@ -110,7 +110,7 @@ function requestLogin(req, res) {
 
          // Check if password is valid
 
-         console.log(JSON.stringify(result.rows))
+         console.log(JSON.stringify(result.rows[0]))
          //var hash = result.rows[0].password ;
          
         /*
