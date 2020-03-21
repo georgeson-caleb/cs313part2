@@ -110,7 +110,8 @@ function requestLogin(req, res) {
 
          // Check if password is valid
 
-         var hash = result.rows[0].password;
+         console.log(JSON.stringify(result.rows))
+         //var hash = result.rows[0].password;
          
          bcrypt.compare(password, hash, function(err, same) {
             if (err) {
