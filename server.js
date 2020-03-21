@@ -25,6 +25,8 @@ app.use(session({secret: secretToken, resave: true, saveUninitialized: false}));
 app.get('/', renderLogin);
 app.get('/home', renderHome);
 app.get('/searchStocks', searchStocks);
+app.get('/purchase', purchase);
+app.get('/sell', sell);
 
 // POST requests
 app.post("/createAccount", [check('email').isEmail().normalizeEmail()], createAccount);
@@ -61,7 +63,7 @@ function createAccount(req, res, next) {
    var email = req.body.email;
 
    // Hash password
-   bcrypt.hash(req.body.password, 10, function(err, encrypted) {
+   bcrypt.hash(req.body.password, 1, function(err, encrypted) {
       if (err) {
 
       } else {
@@ -101,7 +103,6 @@ function requestLogin(req, res) {
    var password = req.body.password;
 
    pool.query("SELECT id, password FROM users WHERE email = $1", [email], function(err, result) {
-      var valid = false;
 
       if (err) {
          console.log("Error running query. ", err);
@@ -109,7 +110,9 @@ function requestLogin(req, res) {
 
          // Check if password is valid
 
-         bcrypt.compare(password, result.rows[0].password, function(err, same) {
+         var hash = result.rows[0].password;
+         
+         bcrypt.compare(password, hash, function(err, same) {
             if (err) {
                console.error("Error comparing passwords. ", err);
             } else {
@@ -123,15 +126,16 @@ function requestLogin(req, res) {
                }
             }
          });
+         
       }
    });
 }
 
 function searchStocks(req, res) {
-   var ssn = req.session;
-   
+   var url = "https://api.worldtradingdata.com/api/v1/stock?symbol=" + req.query.symbol + "&api_token=" + process.env.STOCK_API_KEY;
+
    https.get(
-      "https://api.worldtradingdata.com/api/v1/stock?symbol=" + req.params.symbol + "&api_key" + process.env.STOCK_API_KEY,
+      url,
       (response) => {
          let todo = '';
          response.on('data', (chunk) => {
@@ -146,4 +150,14 @@ function searchStocks(req, res) {
    ).on("error", (error) => {
       console.log("Error: " + error.message);
    });
+}
+
+function purchase(req, res) {
+   ssn = req.session;
+
+   var user_id = ssn.user_id;
+}
+
+function sell(req, res) {
+
 }

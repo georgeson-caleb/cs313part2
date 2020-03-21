@@ -8,9 +8,9 @@
       <% include ../partials/header %>
    </header>
    <div class="m-auto w-50 p-3 border rounded">
-      Uninvested Money: <%= money %>
+      Uninvested Money: <%= money %> <br>
       <label for="search">Search stocks (Use the symbol, not the name):</label>
-      <input id="search" type="text" placeholder="E.G: TWTR">
+      <input id="search" type="text" placeholder="E.G: TWTR"><br>
       <button type="button" class="btn-primary rounded" onclick="searchStocks()">Search</button>
       <div id="searchResult"></div>
    </div>

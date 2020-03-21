@@ -77,18 +77,8 @@ function searchStocks() {
    );
 }
 
-function performSearch(response) {
-   var symbol = document.getElementById("search").value;
-   $.get(
-      "https://api.worldtradingdata.com/api/v1/stock",
-      {
-         symbol: symbol,
-         api_key: response
-      },
-      displaySearchResult
-   );
-}
-
 function displaySearchResult(result) {
-   document.getElementById("searchResult").innerHTML = JSON.stringify(result);
+   var data = JSON.parse(result).data;
+   var string = "Name: " + data[0].name + "<br>Price: " + data[0].price;
+   document.getElementById("searchResult").innerHTML = string;
 }
