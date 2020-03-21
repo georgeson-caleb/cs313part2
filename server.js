@@ -113,7 +113,8 @@ function requestLogin(req, res) {
          console.log(JSON.stringify(result.rows))
          //var hash = result.rows[0].password ;
          
-         bcrypt.compare(password, hash, function(err, same) {
+        /*
+ bcrypt.compare(password, hash, function(err, same) {
             if (err) {
                console.error("Error comparing passwords. ", err);
             } else {
@@ -127,6 +128,7 @@ function requestLogin(req, res) {
                }
             }
          });
+        */
          
       }
    });
