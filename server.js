@@ -26,7 +26,7 @@ app.get('/', renderLogin);
 app.get('/home', renderHome);
 app.get('/searchStocks', searchStocks);
 app.get('/purchase', purchase);
-app.get('/sell', sell);
+//app.get('/sell', sell);
 
 // POST requests
 app.post("/createAccount", [check('email').isEmail().normalizeEmail()], createAccount);
@@ -50,10 +50,20 @@ function renderHome(req, res) {
          console.error("Error running query. ", err);
       } else {
          ssn.money = result.rows[0].money;
-         res.render('pages/home', {
-            userId: ssn.user_id,
-            money: ssn.money
+         pool.query("SELECT stock_name, bought_price, quantity FROM stocks WHERE user_id=$1", [ssn.user_id], function(err, result) {
+            if (err) {
+               console.error("Error running query. ", err);
+            } else {
+               ssn.stocks = result.rows;
+               res.render('pages/home', {
+                  userId: ssn.user_id,
+                  money: ssn.money,
+                  stocks: ssn.stocks
+               });
+            }
          });
+
+         
       }
    });
 }
@@ -69,7 +79,7 @@ function createAccount(req, res, next) {
       } else {
    // Check if the email is valid
          var query = "SELECT id FROM users WHERE email = $1";
-         var valid = pool.query(query, [email], function(err, result) {
+         pool.query(query, [email], function(err, result) {
             if (err) {
                console.error("Error running query. ", err);
             } else {
@@ -110,9 +120,7 @@ function requestLogin(req, res) {
 
          // Check if password is valid
 
-         console.log(JSON.stringify(result.rows[0].password))
-         var hash = result.rows[0].password;
-         
+         var hash = result.rows[0].password;         
         
          bcrypt.compare(password, hash, function(err, same) {
             if (err) {
@@ -133,7 +141,27 @@ function requestLogin(req, res) {
 }
 
 function searchStocks(req, res) {
+
+   /*
+   var symbolLookupUrl = "http://d.yimg.com/autoc.finance.yahoo.com/autoc?query=" + req.query.symbol + "&region=1&lang=en";
+
+   https.get(
+      symbolLookupUrl,
+      (response) => {
+         let todo = '';
+         response.on('data', (chunk) => {
+            todo += chunk;
+         });
+
+         response.on('end', () => {
+            console.log(todo);
+         })
+      }
+   )
+   */
+
    var url = "https://api.worldtradingdata.com/api/v1/stock?symbol=" + req.query.symbol + "&api_token=" + process.env.STOCK_API_KEY;
+
 
    https.get(
       url,
@@ -157,8 +185,67 @@ function purchase(req, res) {
    ssn = req.session;
 
    var user_id = ssn.user_id;
+
+   var symbol = req.query.symbol;
+   var price = parseFloat(req.query.price);
+   var quantity = parseInt(req.query.quantity);
+
+   pool.query("SELECT money FROM users WHERE id=" + user_id + "LIMIT 1;", function(err, result) {
+      if (err) {
+         console.log("Error running query. ", err);
+      } else {
+         var money = result.rows[0].money;
+         var dMoney = price * quantity;
+
+         console.log(money + " < " + dMoney);
+
+         if (money < dMoney) {
+            res.send("Insufficient funds.");
+            res.end();
+         } else {
+            var query = "INSERT INTO stocks (stock_name, bought_price, quantity, user_id) VALUES ('" + symbol + "', " + price + ", " + quantity + ", " + user_id + ");";
+            console.log(query);
+            pool.query(query, function (err, result) {
+               if (err) {
+                  console.error("Error running query. ", err);
+               } else {
+                  pool.query("UPDATE users SET money=" + (money - dMoney) + "WHERE id=" + user_id + " RETURNING money;", function(err, result) {
+                     if (err) {
+                        console.error("Error updating user " + user_id, err);
+                     } else {
+                        res.send(result.rows[0].money);
+                        res.end();
+                     }
+                  });
+               }
+            });
+         }
+      }
+   });
 }
 
+/*
 function sell(req, res) {
+   ssn = req.session;
 
+   var user_id = ssn.user_id;
+
+   var symbol = req.query.symbol;
+   var value = req.query.value;
+   var quantity = req.query.quantity;
+
+   pool.query("SELECT id, bought_price, quantity FROM stocks WHERE stock_name=" + symbol + " & user_id=" + user_id + ";", function(err, result) {
+      if (err) {
+         console.error("Error running query.", err);
+      } else {
+         var low = 0;
+         var current;
+         for (var i = 0; i < result.rows.length; i++) {
+            current = result.rows[i].bought_price;
+            var low = (current < low) ? current : low;
+         }
+
+      }
+   });
 }
+*/

@@ -14,5 +14,10 @@
       <button type="button" class="btn-primary rounded" onclick="searchStocks()">Search</button>
       <div id="searchResult"></div>
    </div>
+   <div class="mx-auto my-3 w-50 p-3 border rounded">
+      <% stocks.forEach(function(stock) {%>
+         <span>Name: <%= stock.stock_name %> - Base Price: $<%= stock.bought_price %> - Quantity: <%= stock.quantity %></span></br>
+      <% }); %>
+   </div>
 </body>
 </html>

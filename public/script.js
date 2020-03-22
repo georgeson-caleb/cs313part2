@@ -79,6 +79,23 @@ function searchStocks() {
 
 function displaySearchResult(result) {
    var data = JSON.parse(result).data;
-   var string = "Name: " + data[0].name + "<br>Price: " + data[0].price;
+   var string = "Name: " + data[0].name + "<br>Price: " + data[0].price + 
+      "<input type='number' id='quantity' placeholder='Quantity'>" +
+      "<button onclick='purchaseStocks(" + '"' + data[0].symbol + '"' + ", " + 
+      data[0].price + ")'>Purchase</button>";
    document.getElementById("searchResult").innerHTML = string;
+}
+
+function purchaseStocks(symbol, price) {
+   var quantity = document.getElementById("quantity").value;
+
+   $.get(
+      "/purchase",
+      {
+         symbol: symbol,
+         price: price,
+         quantity: quantity
+      },
+      (response) => window.location = "/home"
+   );
 }
