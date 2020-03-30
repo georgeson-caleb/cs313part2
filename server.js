@@ -328,7 +328,6 @@ function sell(req, res) {
                   if (err) {
                      console.error("Error deleting stock. ", err);
                   } else {
-                     res.send("Stock deleted.");
                      updateUserMoney(value, req.session, res);
                   }
                });
@@ -339,7 +338,6 @@ function sell(req, res) {
                   if (err) {
                      console.error("Error updating stock " + id, err);
                   } else {
-                     res.send("Stock updated");
                      updateUserMoney(value, req.session, res);
                   }
                });
