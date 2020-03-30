@@ -85,10 +85,16 @@ function processSymbolSearchResult(result) {
 
 function displaySearchResult(result) {
    var data = JSON.parse(result).data;
-   var string = "Name: " + data[0].name + "<br>Price: " + data[0].price + 
+   var string = "";
+   if (data.length > 0) {
+      string = "Name: " + data[0].name + "<br>Price: " + data[0].price + 
       "<input type='number' id='quantity' placeholder='Quantity'>" +
       "<button onclick='purchaseStocks(" + '"' + data[0].symbol + '"' + ", " + 
       data[0].price + ")'>Purchase</button>";
+   } else {
+      string = "No results.";
+   }
+   
    document.getElementById("searchResult").innerHTML = string;
 }
 
