@@ -87,6 +87,10 @@ function getCurrentPrice(req, res, index, callback) {
             var obj = JSON.parse(todo);
             ssn.stocks[index].current_price = parseFloat(obj.data[0].price);
             ssn.stocks[index].current_value = Math.round(ssn.stocks[index].current_price * parseInt(ssn.stocks[index].quantity) * 100) / 100;
+            ssn.stocks[index].change = Math.round((ssn.stocks[index].money_invested - ssn.stocks[index].current_value) * 100) / 100;
+            console.log("Money invested: " + ssn.stocks[index].money_invested);
+            console.log("Current value: " + ssn.stocks[index].current_value);
+            console.log("Change: " + ssn.stocks[index].change);
             if (index + 1 == ssn.stocks.length) {
                renderHome(req, res);
             } else {
@@ -104,7 +108,7 @@ function renderHome(req, res) {
 
    res.render('pages/home', {
       userId: ssn.user_id,
-      money: ssn.money,
+      money: Math.round(ssn.money * 100) / 100,
       stocks: ssn.stocks
    });
 }
@@ -235,8 +239,8 @@ function purchase(req, res) {
       if (err) {
          console.log("Error running query. ", err);
       } else {
-         var money = result.rows[0].money;
-         var dMoney = price * quantity;
+         var money = Math.round(result.rows[0].money * 100) / 100;
+         var dMoney = Math.round(price * quantity * 100) / 100;
 
          console.log(money + ((money < dMoney) ? " < " : " > ") + dMoney);
 
