@@ -7,8 +7,8 @@ CREATE TABLE users (
 
 CREATE TABLE stocks (
    id SERIAL NOT NULL PRIMARY KEY,
-   stock_name varchar(255) NOT NULL,
-   bought_price decimal NOT NULL,
+   symbol varchar(255) NOT NULL,
+   money_invested decimal NOT NULL,
    quantity integer NOT NULL,
    user_id integer references users (id)
 );

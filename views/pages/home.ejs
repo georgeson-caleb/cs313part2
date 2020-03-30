@@ -15,9 +15,57 @@
       <div id="searchResult"></div>
    </div>
    <div class="mx-auto my-3 w-50 p-3 border rounded">
+      <h3>Purchased Stocks</h3> 
+      <table class="table">
+         <tr>
+            <th>
+               Name
+            </th>
+            <th>
+               Money Invested
+            </th>
+            <th>
+               Current Price
+            </th>
+            <th>
+               Quantity
+            </th>
+            <th>
+               Equity
+            </th>
+            <th>
+               Total Change
+            </th>
+            <th>
+            </th>
+         </tr>
       <% stocks.forEach(function(stock) {%>
-         <span>Name: <%= stock.stock_name %> - Base Price: $<%= stock.bought_price %> - Quantity: <%= stock.quantity %></span></br>
+         <tr>
+            <td>
+               <%= stock.symbol %>
+            </td>
+            <td>
+               $<%= stock.money_invested %>
+            </td>
+            <td>
+               $<%= stock.current_price %>
+            </td>
+            <td>
+               <%= stock.quantity %>
+            </td>
+            <td>
+               $<%= stock.current_value %>
+            </td>
+            <td>
+               $<%= stock.current_value - stock.money_invested %>
+            </td>
+            <td>
+               <button onclick="sell(this)">Sell</button>
+            </td>
+         </tr>
       <% }); %>
+      
+      </table>
    </div>
 </body>
 </html>

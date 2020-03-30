@@ -17,16 +17,17 @@ const PORT = process.env.PORT || 5000;
 var pool = new pg.Pool({connectionString: connectionString});
 
 app.set('view engine', 'ejs');
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(session({secret: secretToken, resave: true, saveUninitialized: false}));
 
 // GET requests
 app.get('/', renderLogin);
-app.get('/home', renderHome);
+app.get('/home', loadHome);
 app.get('/searchStocks', searchStocks);
 app.get('/purchase', purchase);
-//app.get('/sell', sell);
+app.get('/sell', sell);
 
 // POST requests
 app.post("/createAccount", [check('email').isEmail().normalizeEmail()], createAccount);
@@ -40,7 +41,7 @@ function renderLogin(req, res) {
    res.render('pages/login');
 }
 
-function renderHome(req, res) {
+function loadHome(req, res) {
    ssn = req.session;
 
    console.log("User id: " + ssn.user_id);
@@ -50,21 +51,61 @@ function renderHome(req, res) {
          console.error("Error running query. ", err);
       } else {
          ssn.money = result.rows[0].money;
-         pool.query("SELECT stock_name, bought_price, quantity FROM stocks WHERE user_id=$1", [ssn.user_id], function(err, result) {
+         pool.query("SELECT symbol, money_invested, quantity FROM stocks WHERE user_id=$1", [ssn.user_id], function(err, result) {
             if (err) {
                console.error("Error running query. ", err);
             } else {
                ssn.stocks = result.rows;
-               res.render('pages/home', {
-                  userId: ssn.user_id,
-                  money: ssn.money,
-                  stocks: ssn.stocks
-               });
+               if (result.rows.length == 0) {
+                  renderHome(req, res);
+               } else {
+                  getCurrentPrice(req, res, 0, getCurrentPrice)
+               }
             }
          });
 
          
       }
+   });
+}
+
+function getCurrentPrice(req, res, index, callback) {
+   ssn = req.session;
+
+   console.log(ssn.stocks[index].symbol);
+
+   var url = "https://api.worldtradingdata.com/api/v1/stock?symbol=" + ssn.stocks[index].symbol + "&api_token=" + process.env.STOCK_API_KEY;
+   https.get(
+      url,
+      (response) => {
+         let todo = '';
+         response.on('data', (chunk) => {
+            todo += chunk;
+         });
+
+         response.on('end', () => {
+            var obj = JSON.parse(todo);
+            ssn.stocks[index].current_price = parseFloat(obj.data[0].price);
+            ssn.stocks[index].current_value = Math.round(ssn.stocks[index].current_price * parseInt(ssn.stocks[index].quantity) * 100) / 100;
+            if (index + 1 == ssn.stocks.length) {
+               renderHome(req, res);
+            } else {
+               callback(req, res, index + 1, getCurrentPrice)
+            }
+         });
+      }
+   ).on("error", (error) => {
+      console.log("Error: " + error.message);
+   });
+}
+
+function renderHome(req, res) {
+   ssn = req.session
+
+   res.render('pages/home', {
+      userId: ssn.user_id,
+      money: ssn.money,
+      stocks: ssn.stocks
    });
 }
 
@@ -197,26 +238,52 @@ function purchase(req, res) {
          var money = result.rows[0].money;
          var dMoney = price * quantity;
 
-         console.log(money + " < " + dMoney);
+         console.log(money + ((money < dMoney) ? " < " : " > ") + dMoney);
 
          if (money < dMoney) {
             res.send("Insufficient funds.");
             res.end();
          } else {
-            var query = "INSERT INTO stocks (stock_name, bought_price, quantity, user_id) VALUES ('" + symbol + "', " + price + ", " + quantity + ", " + user_id + ");";
-            console.log(query);
-            pool.query(query, function (err, result) {
+            // Check if user has already purchased that stock
+            pool.query("SELECT id, money_invested, quantity FROM stocks WHERE symbol=$1 AND user_id=$2", [symbol, ssn.user_id], function(err, result ) {
                if (err) {
                   console.error("Error running query. ", err);
                } else {
-                  pool.query("UPDATE users SET money=" + (money - dMoney) + "WHERE id=" + user_id + " RETURNING money;", function(err, result) {
-                     if (err) {
-                        console.error("Error updating user " + user_id, err);
-                     } else {
-                        res.send(result.rows[0].money);
-                        res.end();
-                     }
-                  });
+                  if (result.rows.length == 0) {
+                     var query = "INSERT INTO stocks (symbol, money_invested, quantity, user_id) VALUES ('" + symbol + "', " + (price * quantity) + ", " + quantity + ", " + user_id + ");";
+            
+                     pool.query(query, function (err, result) {
+                        if (err) {
+                           console.error("Error running query. ", err);
+                        } else {
+                           pool.query("UPDATE users SET money=" + (money - dMoney) + " WHERE id=" + user_id + " RETURNING money;", function(err, result) {
+                              if (err) {
+                                 console.error("Error updating user " + user_id, err);
+                              } else {
+                                 res.send(result.rows[0].money);
+                                 res.end();
+                              }
+                           });
+                        }
+                     });
+                  } else {
+                     var updatedMoney = Math.round((parseFloat(result.rows[0].money_invested) + dMoney) * 100) / 100;
+                     var updatedQuantity = parseInt(result.rows[0].quantity) + quantity;
+                     pool.query("UPDATE stocks SET money_invested=$1, quantity=$2 WHERE id=$3", [updatedMoney, updatedQuantity, result.rows[0].id], function(err, result) {
+                        if (err) {
+                           console.error("Error running query. ", err);
+                        } else {
+                           pool.query("UPDATE users SET money=" + (money - dMoney) + "WHERE id=" + user_id + " RETURNING money;", function(err, result) {
+                              if (err) {
+                                 console.error("Error updating user " + user_id, err);
+                              } else {
+                                 res.send(result.rows[0].money);
+                                 res.end();
+                              }
+                           });
+                        }
+                     });
+                  }
                }
             });
          }
@@ -224,28 +291,72 @@ function purchase(req, res) {
    });
 }
 
-/*
 function sell(req, res) {
    ssn = req.session;
 
    var user_id = ssn.user_id;
 
    var symbol = req.query.symbol;
-   var value = req.query.value;
-   var quantity = req.query.quantity;
+   var quantity = parseInt(req.query.quantity);
 
-   pool.query("SELECT id, bought_price, quantity FROM stocks WHERE stock_name=" + symbol + " & user_id=" + user_id + ";", function(err, result) {
-      if (err) {
-         console.error("Error running query.", err);
-      } else {
-         var low = 0;
-         var current;
-         for (var i = 0; i < result.rows.length; i++) {
-            current = result.rows[i].bought_price;
-            var low = (current < low) ? current : low;
+   var index = 0;
+
+   for (index; index < ssn.stocks.length; index++) {
+      if (ssn.stocks[index].symbol == symbol) {
+         break;
+      }
+   }
+
+   if (quantity > parseInt(ssn.stocks[index].quantity)) {
+      res.send("Invalid quantity");
+   } else {
+      var value = ssn.stocks[index].current_price * quantity;
+      
+      var query = "SELECT id, money_invested, quantity FROM stocks WHERE symbol=$1 AND user_id=$2";
+      pool.query(query, [symbol, user_id], function(err, result) {
+         if (err) {
+            console.error("Error running query. ", err);
+         } else {
+            var id = result.rows[0].id;
+            var money = result.rows[0].money_invested - value;
+            var quant = result.rows[0].quantity - quantity;
+            
+            if (quantity == result.rows[0].quantity) {
+               // DELETE the stock
+               query = "DELETE FROM stocks WHERE id=$1";
+               pool.query(query, [id], function(err, result) {
+                  if (err) {
+                     console.error("Error deleting stock. ", err);
+                  } else {
+                     res.send("Stock deleted.");
+                     updateUserMoney(value, req.session, res);
+                  }
+               });
+            } else {
+               // UPDATE the stock
+               query = "UPDATE stocks SET money_invested=$1, quantity=$2 WHERE id=$3";
+               pool.query(query, [money, quant, id], function(err, result) {
+                  if (err) {
+                     console.error("Error updating stock " + id, err);
+                  } else {
+                     res.send("Stock updated");
+                     updateUserMoney(value, req.session, res);
+                  }
+               });
+            }
+            
          }
+      });
+   }
+}
 
+function updateUserMoney(value, session, res) {
+   var updateMoney = parseFloat(session.money) + parseFloat(value);
+   pool.query("UPDATE users SET money=$1 WHERE id=$2", [updateMoney, session.user_id], function(err, result) {
+      if (err) {
+         console.error("Error updating money for user " + session.user_id + ": ", err);
+      } else {
+         res.send("User updated");
       }
    });
 }
-*/

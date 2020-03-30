@@ -68,13 +68,19 @@ function hideError(id) {
 
 function searchStocks() {
    var symbol = document.getElementById("search").value;
+   
    $.get(
       "/searchStocks",
       {
          symbol: symbol
-      },
+      }, 
       displaySearchResult
    );
+   
+}
+
+function processSymbolSearchResult(result) {
+   console.log(JSON.parse(result));
 }
 
 function displaySearchResult(result) {
@@ -95,6 +101,20 @@ function purchaseStocks(symbol, price) {
          symbol: symbol,
          price: price,
          quantity: quantity
+      },
+      (response) => window.location = "/home"
+   );
+}
+
+function sell(elem) {
+   var symbol = elem.parentNode.parentNode.firstChild.nextElementSibling.innerHTML.replace(/^\s+|\s+$/g, '');
+   console.log("Selling " + symbol);
+
+   $.get(
+      "/sell",
+      {
+         symbol: symbol,
+         quantity: 1
       },
       (response) => window.location = "/home"
    );
