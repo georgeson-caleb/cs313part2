@@ -8,6 +8,8 @@ var bcrypt = require("bcrypt");
 const request = require('request');
 const https = require('https');
 const { check, validationResult } = require("express-validator");
+
+const apiUrl = "https://cloud.iexapis.com/"
 require('dotenv').config();
 var connectionString = process.env.DATABASE_URL;
 var secretToken = process.env.SECRET_TOKEN;
@@ -74,7 +76,7 @@ function getCurrentPrice(req, res, index, callback) {
 
    console.log(ssn.stocks[index].symbol);
 
-   var url = "https://api.worldtradingdata.com/api/v1/stock?symbol=" + ssn.stocks[index].symbol + "&api_token=" + process.env.STOCK_API_KEY;
+   var url = apiUrl + "stable/tops?symbols=" + ssn.stocks[index].symbol + "&token=" + process.env.STOCK_API_KEY;
    https.get(
       url,
       (response) => {
@@ -85,7 +87,7 @@ function getCurrentPrice(req, res, index, callback) {
 
          response.on('end', () => {
             var obj = JSON.parse(todo);
-            ssn.stocks[index].current_price = parseFloat(obj.data[0].price);
+            ssn.stocks[index].current_price = parseFloat(obj[0].lastSalePrice);
             ssn.stocks[index].current_value = Math.round(ssn.stocks[index].current_price * parseInt(ssn.stocks[index].quantity) * 100) / 100;
             ssn.stocks[index].change = Math.round((ssn.stocks[index].money_invested - ssn.stocks[index].current_value) * 100) / 100;
             console.log("Money invested: " + ssn.stocks[index].money_invested);
@@ -205,7 +207,7 @@ function searchStocks(req, res) {
    )
    */
 
-   var url = "https://api.worldtradingdata.com/api/v1/stock?symbol=" + req.query.symbol + "&api_token=" + process.env.STOCK_API_KEY;
+   var url = apiUrl + "stable/tops?symbols=" + req.query.symbol + "&token=" + process.env.STOCK_API_KEY;
 
 
    https.get(
@@ -217,6 +219,7 @@ function searchStocks(req, res) {
          });
 
          response.on('end', () => {
+            console.log(todo);
             res.send(todo);
             res.end();
          })

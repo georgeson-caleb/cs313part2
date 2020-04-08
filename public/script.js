@@ -84,13 +84,13 @@ function processSymbolSearchResult(result) {
 }
 
 function displaySearchResult(result) {
-   var data = JSON.parse(result).data;
+   var data = JSON.parse(result);
    var string = "";
    if (data.length > 0) {
-      string = "Name: " + data[0].name + "<br>Price: " + data[0].price + 
+      string = "Name: " + data[0].symbol + "<br>Price: " + data[0].lastSalePrice + 
       "<input type='number' id='quantity' placeholder='Quantity'>" +
       "<button onclick='purchaseStocks(" + '"' + data[0].symbol + '"' + ", " + 
-      data[0].price + ")'>Purchase</button>";
+      data[0].lastSalePrice + ")'>Purchase</button>";
    } else {
       string = "No results.";
    }
@@ -114,13 +114,13 @@ function purchaseStocks(symbol, price) {
 
 function sell(elem) {
    var symbol = elem.parentNode.parentNode.firstChild.nextElementSibling.innerHTML.replace(/^\s+|\s+$/g, '');
-   console.log("Selling " + symbol);
+   var quantity = elem.parentNode.firstChild.nextElementSibling.value;
 
    $.get(
       "/sell",
       {
          symbol: symbol,
-         quantity: 1
+         quantity: quantity
       },
       (response) => window.location = "/home"
    );
